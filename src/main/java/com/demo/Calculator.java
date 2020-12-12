@@ -2,6 +2,8 @@ package com.demo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -12,26 +14,35 @@ import java.util.List;
 
 public class Calculator {
     public static void main(String[] args) {
-        BigDecimal balance = new BigDecimal("104513.58");
-        BigDecimal spotPosition = new BigDecimal("1.21249");
+        CalculationInput calculationInput = new CalculationInput();
+        calculationInput.setBalance(new BigDecimal("104513.58"));
+        calculationInput.setSpotPosition(new BigDecimal("1.21249"));
 
         Position position0 = new Position(PositionType.BUY, new BigDecimal("1.21420"), new BigDecimal("5"));
         Position position1 = new Position(PositionType.BUY, new BigDecimal("1.21421"), new BigDecimal("10"));
         Position position2 = new Position(PositionType.BUY, new BigDecimal("1.21563"), new BigDecimal("10"));
+        calculationInput.setPositionList(Arrays.asList(position0, position1, position2));
 
-        List<Position> positionList = Arrays.asList(position0, position1, position2);
+        CalculationResult calculateAccount = calculateAccount(calculationInput);
 
-        BigDecimal totalProfit = calculateTotalProfit(positionList, spotPosition);
-        BigDecimal equity = calculateEquity(balance, totalProfit);
-        BigDecimal totalMargin = calculateTotalMarginValue(positionList);
+        System.out.println(calculationInput);
+        System.out.println(calculateAccount);
+    }
+
+    public static CalculationResult calculateAccount(CalculationInput calculationInput) {
+        BigDecimal totalProfit = calculateTotalProfit(calculationInput.getPositionList(), calculationInput.getSpotPosition());
+        BigDecimal equity = calculateEquity(calculationInput.getBalance(), totalProfit);
+        BigDecimal totalMargin = calculateTotalMarginValue(calculationInput.getPositionList());
         BigDecimal freeMargin = calculateFreeMargin(equity, totalMargin);
         BigDecimal marginLevel = calculateMarginLevel(equity, totalMargin);
 
-        System.out.println("Balance : " + formatCurrency(balance));
-        System.out.println("Equity : " + formatCurrency(equity));
-        System.out.println("Free Margin : " + formatCurrency(freeMargin));
-        System.out.println("Margin Level : " + formatCurrency(marginLevel));
-        System.out.println("Margin : " + formatCurrency(totalMargin));
+        CalculationResult calculationResult = new CalculationResult();
+        calculationResult.setTotalProfit(totalProfit);
+        calculationResult.setEquity(equity);
+        calculationResult.setTotalMargin(totalMargin);
+        calculationResult.setFreeMargin(freeMargin);
+        calculationResult.setMarginLevel(marginLevel);
+        return calculationResult;
     }
 
     public static BigDecimal calculateTotalProfit(List<Position> positionList, BigDecimal spotPosition) {
@@ -96,8 +107,13 @@ public class Calculator {
 
     }
 
-    private static String formatCurrency(BigDecimal value) {
+    public static String formatCurrency(BigDecimal value) {
         DecimalFormat formatter = new DecimalFormat("#,###.00");
+        return formatter.format(value);
+    }
+
+    public static String formatPosition(BigDecimal value) {
+        DecimalFormat formatter = new DecimalFormat("#,###.00000");
         return formatter.format(value);
     }
 }
@@ -108,8 +124,55 @@ class Position {
     private PositionType positionType;
     private BigDecimal openPosition;
     private BigDecimal lotSize;
+
+    @Override
+    public String toString() {
+        String stringValue = "";
+        stringValue += "Position Type : " + positionType + "\n";
+        stringValue += "Opening Position : " + Calculator.formatPosition(openPosition) + "\n";
+        stringValue += "Lot Size : " + Calculator.formatPosition(lotSize) + "\n";
+        return stringValue;
+    }
 }
 
 enum PositionType {
     BUY, SELL
+}
+
+@Getter
+@Setter
+class CalculationInput {
+    private BigDecimal balance;
+    private BigDecimal spotPosition;
+    private List<Position> positionList;
+
+    @Override
+    public String toString() {
+        String stringValue = "";
+        stringValue += "Balance : " + Calculator.formatCurrency(balance) + "\n";
+        stringValue += "Spot Position : " + Calculator.formatPosition(spotPosition) + "\n";
+        stringValue += "Positions : " + positionList + "\n";
+        return stringValue;
+    }
+}
+
+@Getter
+@Setter
+class CalculationResult {
+    private BigDecimal totalProfit;
+    private BigDecimal equity;
+    private BigDecimal totalMargin;
+    private BigDecimal freeMargin;
+    private BigDecimal marginLevel;
+
+    @Override
+    public String toString() {
+        String stringValue = "";
+        stringValue += "Equity : " + Calculator.formatCurrency(equity) + "\n";
+        stringValue += "Total Profit : " + Calculator.formatCurrency(totalProfit) + "\n";
+        stringValue += "Total Margin : " + Calculator.formatCurrency(totalMargin) + "\n";
+        stringValue += "Free Margin : " + Calculator.formatCurrency(freeMargin) + "\n";
+        stringValue += "Margin Level : " + Calculator.formatCurrency(marginLevel) + "\n";
+        return stringValue;
+    }
 }
