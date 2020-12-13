@@ -13,8 +13,11 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Calculator {
+    public static final BigDecimal lotPrice = new BigDecimal(100_000);
+
     public static void main(String[] args) {
         CalculationInput calculationInput = new CalculationInput();
+        calculationInput.setLeverage(new BigDecimal(1_000));
         calculationInput.setBalance(new BigDecimal("104513.58"));
         calculationInput.setSpotPosition(new BigDecimal("1.21249"));
 
@@ -32,7 +35,7 @@ public class Calculator {
     public static CalculationResult calculateAccount(CalculationInput calculationInput) {
         BigDecimal totalProfit = calculateTotalProfit(calculationInput.getPositionList(), calculationInput.getSpotPosition());
         BigDecimal equity = calculateEquity(calculationInput.getBalance(), totalProfit);
-        BigDecimal totalMargin = calculateTotalMarginValue(calculationInput.getPositionList());
+        BigDecimal totalMargin = calculateTotalMarginValue(calculationInput.getPositionList(), calculationInput.getLeverage());
         BigDecimal freeMargin = calculateFreeMargin(equity, totalMargin);
         BigDecimal marginLevel = calculateMarginLevel(equity, totalMargin);
 
@@ -58,7 +61,7 @@ public class Calculator {
     public static BigDecimal calculatePositionProfit(Position position, BigDecimal spotPosition) {
         BigDecimal positionProfit = position.getOpenPosition()
                 .subtract(spotPosition)
-                .multiply(new BigDecimal(100_000))
+                .multiply(lotPrice)
                 .multiply(position.getLotSize())
                 .setScale(2, RoundingMode.HALF_UP);
 
@@ -75,20 +78,20 @@ public class Calculator {
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
-    public static BigDecimal calculateTotalMarginValue(List<Position> positionList) {
+    public static BigDecimal calculateTotalMarginValue(List<Position> positionList, BigDecimal leverage) {
         BigDecimal totalMargin = new BigDecimal(0);
 
         for (Position position : positionList) {
-            totalMargin = totalMargin.add(calculateMarginValue(position));
+            totalMargin = totalMargin.add(calculateMarginValue(position, leverage));
         }
 
         return totalMargin;
     }
 
-    public static BigDecimal calculateMarginValue(Position position) {
+    public static BigDecimal calculateMarginValue(Position position, BigDecimal leverage) {
         return position.getOpenPosition()
                 .multiply(position.getLotSize())
-                .multiply(new BigDecimal(1_000))
+                .multiply(leverage)
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -142,6 +145,7 @@ enum PositionType {
 @Getter
 @Setter
 class CalculationInput {
+    private BigDecimal leverage;
     private BigDecimal balance;
     private BigDecimal spotPosition;
     private List<Position> positionList;
@@ -149,6 +153,7 @@ class CalculationInput {
     @Override
     public String toString() {
         String stringValue = "";
+        stringValue += "Leverage : " + leverage.toPlainString() + "\n";
         stringValue += "Balance : " + Calculator.formatCurrency(balance) + "\n";
         stringValue += "Spot Position : " + Calculator.formatPosition(spotPosition) + "\n";
         stringValue += "Positions : " + positionList + "\n";
